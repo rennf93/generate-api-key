@@ -1,4 +1,4 @@
-# Generate API Key
+# generate-api-key
 
 This project provides a GitHub Action to generate a secure API key.
 

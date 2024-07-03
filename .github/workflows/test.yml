@@ -20,5 +20,45 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.pip
 
+    - name: Check Docker Hub Status
+      uses: crazy-max/ghaction-docker-status@v3
+      with:
+        overall_threshold: degraded_performance
+        authentication_threshold: service_disruption
+        hub_registry_threshold: service_disruption
+
+    - name: Log in to DockerHub
+      uses: docker/login-action@v3.2.0
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        ecr: auto
+        logout: true
+
+    - name: Verify Docker Login
+      run: docker info
+
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
+        secrets: |
+          DOCKER_IMAGE=${{ secrets.DOCKER_IMAGE }}
+
+    - name: Docker Scout
+      id: docker-scout
+      uses: docker/scout-action@v1.9.3
+      with:
+        command: cves,recommendations,compare
+        image: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
+        to-latest: true
+        ignore-base: true
+        ignore-unchanged: true
+        only-fixed: true
+        organization: ${{ secrets.DOCKER_USERNAME }}
+
     - name: Run tests
       run: python -m unittest discover
