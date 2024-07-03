@@ -1,0 +1,17 @@
+name: 'Generate API Key'
+description: 'A GitHub Action to generate an API key.'
+author: 'Renzo Franceschini'
+
+inputs:
+  KEY_LENGTH:
+    description: 'The length of the API key to be generated'
+    required: false
+    default: '32'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+
+branding:
+  icon: 'lock'
+  color: 'green'
