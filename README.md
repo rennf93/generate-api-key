@@ -16,12 +16,12 @@ This project provides a GitHub Action to generate a secure API key.
 ---
 ## Usage
 
-\```yaml
+```yaml
 - name: Generate API Key
   uses: <your_github_handle>/generate-api-key@v1.0
   with:
     KEY_LENGTH: <length_of_the_key>
-\```
+```
 
 <i>where</i>
 
