@@ -20,7 +20,8 @@ def main():
     logging.info(f"Generating API key with length {key_length} ...")
     api_key = generate_api_key(key_length)
     logging.info("API key generated successfully!")
-    print(api_key)
+    with open(os.getenv('GITHUB_OUTPUT'), 'a') as fh:
+        print(f"key={api_key}", file=fh)
 
 
 
