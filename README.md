@@ -34,3 +34,7 @@ To view the generated key, you can access the output from the previous step or j
 
 1. [GitHub Actions Documentation](https://docs.github.com/en/actions)
 2. [Python `secrets` Library](https://docs.python.org/3/library/secrets.html)
+
+
+
+![Custom Badge](https://rennf93.github.io/project-assets/images/rf-icon.png)
