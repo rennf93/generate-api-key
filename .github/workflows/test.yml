@@ -59,7 +59,7 @@ jobs:
 
     - name: Docker Scout
       id: docker-scout
-      uses: docker/scout-action@v1.15.1
+      uses: docker/scout-action@v1.16.3
       with:
         command: cves,recommendations,compare
         image: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
