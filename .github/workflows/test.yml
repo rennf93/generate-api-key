@@ -30,7 +30,7 @@ jobs:
         pip install -r requirements.pip
 
     - name: Check Docker Hub Status
-      uses: crazy-max/ghaction-docker-status@v3
+      uses: crazy-max/ghaction-docker-status@v4
       with:
         overall_threshold: degraded_performance
         authentication_threshold: service_disruption
