@@ -4,23 +4,27 @@ on:
   push:
     branches:
       - master
-  pull_request_target:
+  # pull_request, not pull_request_target: the tests run on the PR's own code, and no PR runs with the repository's
+  # secrets on code it checked out
+  pull_request:
     branches:
       - master
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    permissions:
-      pull-requests: write
-
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
 
     - name: Set up Python
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
       with:
         python-version: '3.x'
 
@@ -29,15 +33,34 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.pip
 
+    - name: Run tests
+      run: python -m unittest discover
+
+  image:
+    needs: test
+    # Docker Hub secrets exist for pushes and for branches of this repository; Dependabot PRs get none
+    if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
+
     - name: Check Docker Hub Status
-      uses: crazy-max/ghaction-docker-status@v4
+      uses: crazy-max/ghaction-docker-status@8924b6134452fab7da5c3fdf17f5c4befd1fc244 # v4
       with:
         overall_threshold: degraded_performance
         authentication_threshold: service_disruption
         hub_registry_threshold: service_disruption
 
     - name: Log in to DockerHub
-      uses: docker/login-action@v4.8.0
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
@@ -47,27 +70,33 @@ jobs:
     - name: Verify Docker Login
       run: docker info
 
-    - name: Build and Push Docker image
-      uses: docker/build-push-action@v7
+    - name: Build Docker image
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
       with:
         context: .
         file: ./Dockerfile
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
+        load: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:${{ github.sha }}
         secrets: |
           DOCKER_IMAGE=${{ secrets.DOCKER_IMAGE }}
 
+    # The new image against the published one: registry:// needs no Scout stream, which to-latest did
     - name: Docker Scout
       id: docker-scout
-      uses: docker/scout-action@v1.29.0
+      uses: docker/scout-action@e7e2a72bf1485d10a58f30696b6c513b261ce4fa # v1.29.0
       with:
         command: cves,recommendations,compare
-        image: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
-        to-latest: true
+        image: local://${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:${{ github.sha }}
+        to: registry://${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
         ignore-base: true
         ignore-unchanged: true
         only-fixed: true
         organization: ${{ secrets.DOCKER_USERNAME }}
 
-    - name: Run tests
-      run: python -m unittest discover
+    - name: Push the image as latest
+      if: github.event_name == 'push'
+      env:
+        IMAGE: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}
+      run: |
+        docker tag "$IMAGE:${{ github.sha }}" "$IMAGE:latest"
+        docker push "$IMAGE:latest"
